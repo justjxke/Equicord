@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ */
 
 import { migratePluginSettings } from "@api/Settings";
 import { Devs, EquicordDevs } from "@utils/constants";
@@ -25,17 +25,26 @@ import misc from "./commands/misc";
 import system from "./commands/system";
 import text from "./commands/text";
 import time from "./commands/time";
+import refresh from "./commands/refresh";
 
-migratePluginSettings("MoreCommands", "CuteAnimeBoys", "CuteNekos", "CutePats", "Slap");
+migratePluginSettings(
+    "MoreCommands",
+    "CuteAnimeBoys",
+    "CuteNekos",
+    "CutePats",
+    "Slap",
+);
 export default definePlugin({
     name: "MoreCommands",
     description: "Adds various fun and useful commands",
-    authors: [Devs.Arjix, Devs.amy, Devs.Samu, EquicordDevs.zyqunix, EquicordDevs.ShadyGoat, Devs.thororen, Devs.Korbo],
-    commands: [
-        ...choice,
-        ...system,
-        ...text,
-        ...time,
-        ...misc,
-    ]
+    authors: [
+        Devs.Arjix,
+        Devs.amy,
+        Devs.Samu,
+        EquicordDevs.zyqunix,
+        EquicordDevs.ShadyGoat,
+        Devs.thororen,
+        Devs.Korbo,
+    ],
+    commands: [...choice, ...system, ...text, ...time, ...misc, ...refresh],
 });
