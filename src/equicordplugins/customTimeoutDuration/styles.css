@@ -1,0 +1,22 @@
+.vc-expand-timeout-duration {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.vc-expand-timeout-duration > button {
+    width: 100%;
+    border-radius: 8px;
+    border-left-width: 1px;
+}
+
+.vc-expand-timeout-duration > button:first-child,
+.vc-expand-timeout-duration > button:last-child {
+    border-radius: 8px !important;
+}
+
+.vc-expand-timeout-duration-custom {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
