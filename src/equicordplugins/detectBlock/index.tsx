@@ -26,8 +26,19 @@ const VoiceChannelActions = findByPropsLazy("selectVoiceChannel") as {
     selectVoiceChannel(channelId: string | null): unknown;
 };
 
-const warnedVoiceKeys = new Set<string>();
-const warnedGroupChannels = new Set<string>();
+const warnedVoiceKeys = new Map<string, string>();
+const warnedGroupChannels = new Map<string, string>();
+type PendingVoiceWarning = {
+    promise: Promise<void>;
+    needsRecheck: boolean;
+};
+
+const pendingVoiceJoins = new Map<string, Promise<void>>();
+const pendingGroupWarnings = new Map<string, Promise<void>>();
+const pendingVoiceWarnings = new Map<string, PendingVoiceWarning>();
+const seenVoiceChannelMembers = new Map<string, Set<string>>();
+let activeGeneration = 0;
+let latestVoiceJoinAttempt = 0;
 
 function getDisplayName(user: User | undefined) {
     if (!user) return "Unknown user";
@@ -42,6 +53,11 @@ function getBlockedVoiceUserIds(channelId: string) {
     return Object.values(states)
         .map(state => state.userId)
         .filter(userId => userId && userId !== currentUserId);
+}
+
+function sameUserIds(left: string[], right: string[]) {
+    if (left.length !== right.length) return false;
+    return left.every((userId, index) => userId === right[index]);
 }
 
 async function getBlockedUsers(userIds: string[]) {
@@ -64,61 +80,150 @@ function shouldWarnForVoiceChannel(channel: Channel | undefined) {
 }
 
 async function maybeWarnBeforeVoiceJoin(channelId: string, proceed: () => unknown) {
-    const channel = ChannelStore.getChannel(channelId);
-    if (!shouldWarnForVoiceChannel(channel)) {
-        return proceed();
-    }
+    const pendingJoin = pendingVoiceJoins.get(channelId);
+    if (pendingJoin) return pendingJoin;
 
-    const blockedUsers = await getBlockedUsers(getBlockedVoiceUserIds(channelId));
-    if (!blockedUsers.length) {
-        return proceed();
-    }
+    const generation = activeGeneration;
+    const attemptId = latestVoiceJoinAttempt;
 
-    openBlockedWarningModal({
-        blockedNames: blockedUsers.map(user => user.name),
-        blockedUserIds: blockedUsers.map(user => user.userId),
-        variant: "voiceJoin",
-        onConfirm: () => {
-            void proceed();
+    const pendingPromise = (async () => {
+        const channel = ChannelStore.getChannel(channelId);
+        if (!shouldWarnForVoiceChannel(channel)) {
+            return proceed();
+        }
+
+        const blockedUserIds = getBlockedVoiceUserIds(channelId).sort();
+        const blockedUsers = await getBlockedUsers(blockedUserIds);
+        if (generation !== activeGeneration || attemptId !== latestVoiceJoinAttempt) return;
+        const latestBlockedUserIds = getBlockedVoiceUserIds(channelId).sort();
+        if (!latestBlockedUserIds.length || !sameUserIds(blockedUserIds, latestBlockedUserIds)) {
+            return proceed();
+        }
+
+        openBlockedWarningModal({
+            blockedNames: blockedUsers.map(user => user.name),
+            blockedUserIds: latestBlockedUserIds,
+            variant: "voiceJoin",
+            onConfirm: () => {
+                if (generation !== activeGeneration || attemptId !== latestVoiceJoinAttempt) return;
+                void proceed();
+            }
+        });
+    })().finally(() => {
+        if (pendingVoiceJoins.get(channelId) === pendingPromise) {
+            pendingVoiceJoins.delete(channelId);
         }
     });
+
+    pendingVoiceJoins.set(channelId, pendingPromise);
+    return pendingPromise;
 }
 
 async function maybeWarnForCurrentVoiceChannel(channelId: string) {
-    const blockedUsers = await getBlockedUsers(getBlockedVoiceUserIds(channelId));
-    if (!blockedUsers.length) return;
+    const pendingWarning = pendingVoiceWarnings.get(channelId);
+    if (pendingWarning) {
+        pendingWarning.needsRecheck = true;
+        return pendingWarning.promise;
+    }
 
-    const warningKey = `${channelId}:${blockedUsers.map(user => user.userId).join(",")}`;
-    if (warnedVoiceKeys.has(warningKey)) return;
+    const generation = activeGeneration;
+    const pendingState: PendingVoiceWarning = {
+        promise: Promise.resolve(),
+        needsRecheck: false
+    };
 
-    warnedVoiceKeys.add(warningKey);
+    pendingState.promise = (async () => {
+        const blockedUserIds = getBlockedVoiceUserIds(channelId).sort();
+        const previousBlockedUserIds = seenVoiceChannelMembers.get(channelId);
 
-    openBlockedWarningModal({
-        blockedNames: blockedUsers.map(user => user.name),
-        blockedUserIds: blockedUsers.map(user => user.userId),
-        variant: "voiceLeave",
-        onConfirm: () => {
-            void VoiceChannelActions.selectVoiceChannel(null);
+        if (!blockedUserIds.length) {
+            seenVoiceChannelMembers.delete(channelId);
+            warnedVoiceKeys.delete(channelId);
+            return;
+        }
+
+        const hasNewBlockedUser = previousBlockedUserIds == null || blockedUserIds.some(userId => !previousBlockedUserIds.has(userId));
+        if (!hasNewBlockedUser) return;
+
+        const blockedUsers = await getBlockedUsers(blockedUserIds);
+        if (generation !== activeGeneration) return;
+
+        const latestBlockedUserIds = getBlockedVoiceUserIds(channelId).sort();
+        if (!latestBlockedUserIds.length) {
+            seenVoiceChannelMembers.delete(channelId);
+            warnedVoiceKeys.delete(channelId);
+            return;
+        }
+
+        if (!sameUserIds(blockedUserIds, latestBlockedUserIds)) return;
+
+        seenVoiceChannelMembers.set(channelId, new Set(latestBlockedUserIds));
+
+        const warningKey = latestBlockedUserIds.join(",");
+        if (warnedVoiceKeys.get(channelId) === warningKey) return;
+
+        warnedVoiceKeys.set(channelId, warningKey);
+
+        openBlockedWarningModal({
+            blockedNames: blockedUsers.map(user => user.name),
+            blockedUserIds: latestBlockedUserIds,
+            variant: "voiceLeave",
+            onConfirm: () => {
+                if (generation !== activeGeneration) return;
+                void VoiceChannelActions.selectVoiceChannel(null);
+            }
+        });
+    })().finally(() => {
+        if (pendingVoiceWarnings.get(channelId) === pendingState) {
+            pendingVoiceWarnings.delete(channelId);
+        }
+
+        if (pendingState.needsRecheck && generation === activeGeneration) {
+            void maybeWarnForCurrentVoiceChannel(channelId);
         }
     });
+
+    pendingVoiceWarnings.set(channelId, pendingState);
+    return pendingState.promise;
 }
 
 async function maybeWarnForGroupChannel(channelId: string) {
     const channel = ChannelStore.getChannel(channelId);
     if (channel?.type !== ChannelType.GROUP_DM) return;
-    if (warnedGroupChannels.has(channelId)) return;
+    const pendingWarning = pendingGroupWarnings.get(channelId);
+    if (pendingWarning) return pendingWarning;
 
-    const blockedUsers = await getBlockedUsers(channel.recipients);
-    if (!blockedUsers.length) return;
+    const currentRecipientKey = [...channel.recipients].sort().join(",");
+    if (warnedGroupChannels.get(channelId) === currentRecipientKey) return;
 
-    warnedGroupChannels.add(channelId);
+    const pendingPromise = (async () => {
+        const blockedUsers = await getBlockedUsers(channel.recipients);
+        const latestChannel = ChannelStore.getChannel(channelId);
+        if (latestChannel?.type !== ChannelType.GROUP_DM) return;
 
-    openBlockedWarningModal({
-        blockedNames: blockedUsers.map(user => user.name),
-        blockedUserIds: blockedUsers.map(user => user.userId),
-        variant: "group",
-        onConfirm: () => void 0
+        const latestRecipientKey = [...latestChannel.recipients].sort().join(",");
+        if (latestRecipientKey !== currentRecipientKey) return;
+        if (!blockedUsers.length) {
+            warnedGroupChannels.delete(channelId);
+            return;
+        }
+
+        warnedGroupChannels.set(channelId, latestRecipientKey);
+
+        openBlockedWarningModal({
+            blockedNames: blockedUsers.map(user => user.name),
+            blockedUserIds: blockedUsers.map(user => user.userId),
+            variant: "group",
+            onConfirm: () => void 0
+        });
+    })().finally(() => {
+        if (pendingGroupWarnings.get(channelId) === pendingPromise) {
+            pendingGroupWarnings.delete(channelId);
+        }
     });
+
+    pendingGroupWarnings.set(channelId, pendingPromise);
+    return pendingPromise;
 }
 
 let originalSelectVoiceChannel: typeof VoiceChannelActions.selectVoiceChannel | null = null;
@@ -157,22 +262,29 @@ export default definePlugin({
         }
     },
     start() {
+        activeGeneration++;
         originalSelectVoiceChannel ??= VoiceChannelActions.selectVoiceChannel.bind(VoiceChannelActions);
         VoiceChannelActions.selectVoiceChannel = ((channelId: string | null) => {
             if (!originalSelectVoiceChannel || channelId == null) {
                 return originalSelectVoiceChannel?.(channelId);
             }
 
+            latestVoiceJoinAttempt++;
             return maybeWarnBeforeVoiceJoin(channelId, () => originalSelectVoiceChannel?.(channelId));
         }) as typeof VoiceChannelActions.selectVoiceChannel;
     },
     stop() {
+        activeGeneration++;
         if (originalSelectVoiceChannel) {
             VoiceChannelActions.selectVoiceChannel = originalSelectVoiceChannel;
         }
 
         warnedVoiceKeys.clear();
         warnedGroupChannels.clear();
+        pendingVoiceJoins.clear();
+        pendingGroupWarnings.clear();
+        pendingVoiceWarnings.clear();
+        seenVoiceChannelMembers.clear();
         clearDetectionState();
     },
     renderNicknameIcon({ userId }) {

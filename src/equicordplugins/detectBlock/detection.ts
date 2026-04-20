@@ -15,27 +15,48 @@ export interface DetectionRecord {
 
 type Subscriber = () => void;
 
-const UNKNOWN_TTL_MS = 5 * 60 * 1000;
-const KNOWN_TTL_MS = 30 * 60 * 1000;
+const UNKNOWN_TTL_MS = 30 * 1000;
+const CLEAR_TTL_MS = 2 * 60 * 1000;
+const BLOCKED_TTL_MS = 5 * 60 * 1000;
 const MAX_CONCURRENT_REQUESTS = 4;
 
 const cache = new Map<string, DetectionRecord>();
 const inflight = new Map<string, Promise<BlockDetectionState>>();
 const subscribers = new Map<string, Set<Subscriber>>();
-const queue: Array<() => void> = [];
+const requestVersions = new Map<string, number>();
+const queue: Array<{
+    run: () => void;
+    cancel: () => void;
+}> = [];
 
 let activeRequests = 0;
+let requestGeneration = 0;
 
-function getTtlMs(state: BlockDetectionState) {
-    return state === "unknown" ? UNKNOWN_TTL_MS : KNOWN_TTL_MS;
+export function getDetectionTtlMs(state: BlockDetectionState) {
+    switch (state) {
+        case "unknown":
+            return UNKNOWN_TTL_MS;
+        case "clear":
+            return CLEAR_TTL_MS;
+        case "blockedYou":
+            return BLOCKED_TTL_MS;
+    }
 }
 
 function isFresh(record: DetectionRecord | undefined) {
-    return record != null && Date.now() - record.checkedAt < getTtlMs(record.state);
+    return record != null && Date.now() - record.checkedAt < getDetectionTtlMs(record.state);
 }
 
 function notify(userId: string) {
     subscribers.get(userId)?.forEach(listener => listener());
+}
+
+function getRequestVersion(userId: string) {
+    return requestVersions.get(userId) ?? 0;
+}
+
+function bumpRequestVersion(userId: string) {
+    requestVersions.set(userId, getRequestVersion(userId) + 1);
 }
 
 function setRecord(userId: string, state: BlockDetectionState) {
@@ -52,18 +73,25 @@ function dequeue() {
         const next = queue.shift();
         if (!next) return;
         activeRequests++;
-        next();
+        next.run();
     }
 }
 
-function runQueued<T>(task: () => Promise<T>) {
-    return new Promise<T>((resolve, reject) => {
-        queue.push(() => {
-            task().then(resolve, reject).finally(() => {
-                activeRequests--;
-                dequeue();
-            });
-        });
+function runQueued(task: () => Promise<BlockDetectionState>) {
+    return new Promise<BlockDetectionState>((resolve, reject) => {
+        const queuedTask = {
+            run: () => {
+                task().then(resolve, reject).finally(() => {
+                    activeRequests--;
+                    dequeue();
+                });
+            },
+            cancel: () => {
+                resolve("unknown");
+            }
+        };
+
+        queue.push(queuedTask);
 
         dequeue();
     });
@@ -71,7 +99,7 @@ function runQueued<T>(task: () => Promise<T>) {
 
 async function fetchState(userId: string): Promise<BlockDetectionState> {
     if (UserProfileStore.getUserProfile(userId) != null) {
-        return setRecord(userId, "clear");
+        return "clear";
     }
 
     try {
@@ -84,17 +112,17 @@ async function fetchState(userId: string): Promise<BlockDetectionState> {
             oldFormErrors: true
         });
 
-        return setRecord(userId, body.user_profile == null ? "blockedYou" : "clear");
+        return body.user_profile == null ? "blockedYou" : "clear";
     } catch (error) {
         const status = typeof error === "object" && error != null && "status" in error
             ? Reflect.get(error, "status")
             : void 0;
 
         if (status === 404) {
-            return setRecord(userId, "unknown");
+            return "unknown";
         }
 
-        return setRecord(userId, "unknown");
+        return "unknown";
     }
 }
 
@@ -109,7 +137,7 @@ export function getDetectionState(userId: string): BlockDetectionState {
 }
 
 export function primeClear(userId: string) {
-    if (getDetectionState(userId) === "blockedYou") return;
+    bumpRequestVersion(userId);
     setRecord(userId, "clear");
 }
 
@@ -139,8 +167,21 @@ export function ensureDetection(userId: string) {
     const pending = inflight.get(userId);
     if (pending) return pending;
 
+    const generation = requestGeneration;
+    const requestVersion = getRequestVersion(userId);
     const request = runQueued(() => fetchState(userId))
-        .finally(() => inflight.delete(userId));
+        .then(state => {
+            if (generation !== requestGeneration || requestVersion !== getRequestVersion(userId)) {
+                return "unknown";
+            }
+
+            return setRecord(userId, state);
+        })
+        .finally(() => {
+            if (inflight.get(userId) === request) {
+                inflight.delete(userId);
+            }
+        });
 
     inflight.set(userId, request);
     return request;
@@ -161,9 +202,15 @@ export async function detectBlockedUsers(userIds: string[]) {
 }
 
 export function clearDetectionState() {
+    requestGeneration++;
+
+    for (const queuedTask of queue) {
+        queuedTask.cancel();
+    }
+
     cache.clear();
     inflight.clear();
     subscribers.clear();
+    requestVersions.clear();
     queue.length = 0;
-    activeRequests = 0;
 }

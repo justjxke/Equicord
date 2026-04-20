@@ -4,33 +4,48 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { NoEntrySignIcon } from "@components/Icons";
 import { classNameFactory } from "@utils/css";
 import { classes } from "@utils/misc";
 import { User } from "@vencord/discord-types";
-import { NoEntrySignIcon } from "@components/Icons";
 import { Tooltip, useEffect, useState } from "@webpack/common";
 
-import { ensureDetection, getDetectionState, subscribeToDetection } from "./detection";
+import { ensureDetection, getDetectionRecord, getDetectionTtlMs, subscribeToDetection } from "./detection";
 
 const cl = classNameFactory("vc-detect-block-");
 
 function useBlockState(userId: string) {
-    const [state, setState] = useState(() => getDetectionState(userId));
+    const [record, setRecord] = useState(() => getDetectionRecord(userId));
 
     useEffect(() => {
-        setState(getDetectionState(userId));
+        const syncState = () => {
+            setRecord(getDetectionRecord(userId));
+        };
 
-        return subscribeToDetection(userId, () => {
-            setState(getDetectionState(userId));
-        });
+        syncState();
+
+        return subscribeToDetection(userId, syncState);
     }, [userId]);
 
     useEffect(() => {
-        if (state !== "unknown") return;
-        void ensureDetection(userId);
-    }, [state, userId]);
+        if (!record) {
+            void ensureDetection(userId);
+            return;
+        }
 
-    return state;
+        const remainingMs = record.checkedAt + getDetectionTtlMs(record.state) - Date.now();
+        if (remainingMs <= 0) {
+            setRecord(undefined);
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            setRecord(undefined);
+        }, remainingMs);
+        return () => window.clearTimeout(timeout);
+    }, [record, userId]);
+
+    return record?.state ?? "unknown";
 }
 
 export interface DetectBlockBadgeProps {
