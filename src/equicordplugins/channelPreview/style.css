@@ -1,0 +1,77 @@
+.vc-channel-preview-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+.vc-channel-preview-scrim {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px) saturate(0.8) brightness(0.7);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.vc-channel-preview-preview {
+    position: fixed;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 14px;
+    background: var(--background-base-low);
+    box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.48),
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 0 0 1px var(--background-modifier-accent);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.vc-channel-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--background-modifier-accent);
+    font-weight: 600;
+    color: #fff;
+}
+
+.vc-channel-preview-divider-top {
+    margin: 0;
+    padding: 6px 12px 8px;
+}
+
+.vc-channel-preview-header-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.vc-channel-preview-scroller {
+    min-height: 0;
+    flex: 1;
+    padding: 10px 0 14px;
+}
+
+.vc-channel-preview-scroller-wrap {
+    display: flex;
+    flex-direction: column;
+}
+
+.vc-channel-preview-scroller-wrap .messageListItem,
+.vc-channel-preview-scroller-wrap [class*="messageListItem"] {
+    pointer-events: none;
+}
+
+.vc-channel-preview-divider-cut {
+    margin-top: 24px !important;
+}
