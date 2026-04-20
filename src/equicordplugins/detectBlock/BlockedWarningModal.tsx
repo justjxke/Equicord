@@ -4,34 +4,19 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Avatar, UserStore } from "@webpack/common";
+import { BaseText } from "@components/BaseText";
+import { Button } from "@components/Button";
+import { Flex } from "@components/Flex";
 import { WarningIcon } from "@components/Icons";
-import { closeModal, openModal } from "@utils/modal";
+import { classNameFactory } from "@utils/css";
+import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
 import { humanFriendlyJoin } from "@utils/text";
 import { User } from "@vencord/discord-types";
-import { findByPropsLazy } from "@webpack";
-
-const NativeExpressiveModal = findByPropsLazy("onDismissAndStay", "leaveButtonText", "stayButtonText") as {
-    A: (props: NativeExpressiveModalProps) => JSX.Element;
-};
-
-type NativeExpressiveModalProps = {
-    headerText: string;
-    descriptionText?: string;
-    infoRows: Array<{
-        icon: JSX.Element;
-        text: string;
-        className?: string;
-    }>;
-    onDismissAndStay: () => void;
-    onDismissAndLeave: () => void;
-    stayButtonText: string;
-    leaveButtonText: string;
-    transitionState?: unknown;
-    impression?: string;
-};
+import { Avatar, UserStore } from "@webpack/common";
 
 type WarningVariant = "voiceJoin" | "voiceLeave" | "group";
+
+const cl = classNameFactory("vc-detect-block-");
 
 function getPrimaryUser(userIds: string[]) {
     return userIds
@@ -49,8 +34,8 @@ function getAvatar(user: User | undefined, fallbackId: string) {
 }
 
 function getBlockedSubjectText(names: string[]) {
-    if (names.length === 1) return `${names[0]} is here`;
-    return `${humanFriendlyJoin(names)} are here`;
+    if (names.length === 1) return `${names[0]} is here.`;
+    return `${humanFriendlyJoin(names)} are here.`;
 }
 
 function getWarningCopy(variant: WarningVariant) {
@@ -59,22 +44,22 @@ function getWarningCopy(variant: WarningVariant) {
             return {
                 headerText: "Join voice?",
                 descriptionText: "Someone you've blocked is here. If you join, they will still be blocked.",
-                leaveButtonText: "Join",
-                stayButtonText: "Don't join"
+                confirmText: "Join",
+                cancelText: "Don't join"
             };
         case "voiceLeave":
             return {
                 headerText: "Leave voice?",
                 descriptionText: "Someone you've blocked is here. If you stay, they will still be blocked.",
-                leaveButtonText: "Leave",
-                stayButtonText: "Stay"
+                confirmText: "Leave",
+                cancelText: "Stay"
             };
         case "group":
             return {
                 headerText: "Join group?",
                 descriptionText: "Someone you've blocked is here. If you join, they will still be blocked.",
-                leaveButtonText: "Join",
-                stayButtonText: "Don't join"
+                confirmText: "Join",
+                cancelText: "Don't join"
             };
     }
 }
@@ -92,31 +77,50 @@ export function openBlockedWarningModal({
 }) {
     const copy = getWarningCopy(variant);
     const avatarUser = getPrimaryUser(blockedUserIds);
-    const infoRows = [
-        {
-            icon: getAvatar(avatarUser, blockedUserIds[0] ?? ""),
-            text: getBlockedSubjectText(blockedNames)
-        },
-        {
-            icon: <WarningIcon height={16} width={16} />,
-            text: "You will be able to hear each other"
-        }
-    ];
 
     const key = openModal(modalProps => (
-        <NativeExpressiveModal.A
-            transitionState={modalProps.transitionState}
-            headerText={copy.headerText}
-            descriptionText={copy.descriptionText}
-            infoRows={infoRows}
-            stayButtonText={copy.stayButtonText}
-            leaveButtonText={copy.leaveButtonText}
-            onDismissAndStay={() => closeModal(key)}
-            onDismissAndLeave={() => {
-                closeModal(key);
-                void onConfirm();
-            }}
-        />
+        <ModalRoot {...modalProps} size={ModalSize.MEDIUM} className={cl("root")}>
+            <ModalHeader className={cl("header")}>
+                <BaseText size="lg" weight="bold" style={{ flexGrow: 1 }}>
+                    {copy.headerText}
+                </BaseText>
+                <ModalCloseButton onClick={() => closeModal(key)} />
+            </ModalHeader>
+            <ModalContent className={cl("content")}>
+                <Flex flexDirection="column" style={{ gap: 12 }}>
+                    <Flex align="center" style={{ gap: 12 }}>
+                        <div className={cl("avatar")}>
+                            {getAvatar(avatarUser, blockedUserIds[0] ?? "")}
+                        </div>
+                        <BaseText>{getBlockedSubjectText(blockedNames)}</BaseText>
+                    </Flex>
+                    <Flex align="center" style={{ gap: 12 }}>
+                        <div className={cl("warning-icon")}>
+                            <WarningIcon height={16} width={16} />
+                        </div>
+                        <BaseText>You will be able to hear each other.</BaseText>
+                    </Flex>
+                    <BaseText>{copy.descriptionText}</BaseText>
+                </Flex>
+            </ModalContent>
+            <ModalFooter className={cl("footer")}>
+                <Button
+                    color={Button.Colors.PRIMARY}
+                    onClick={() => closeModal(key)}
+                >
+                    {copy.cancelText}
+                </Button>
+                <Button
+                    color={Button.Colors.BRAND}
+                    onClick={() => {
+                        closeModal(key);
+                        void onConfirm();
+                    }}
+                >
+                    {copy.confirmText}
+                </Button>
+            </ModalFooter>
+        </ModalRoot>
     ));
 
     return key;
