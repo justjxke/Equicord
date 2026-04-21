@@ -79,7 +79,7 @@ function shouldWarnForVoiceChannel(channel: Channel | undefined) {
     );
 }
 
-async function maybeWarnBeforeVoiceJoin(channelId: string, proceed: () => unknown) {
+async function maybeWarnBeforeVoiceJoin(channelId: string, proceed: () => void | Promise<void>) {
     const pendingJoin = pendingVoiceJoins.get(channelId);
     if (pendingJoin) return pendingJoin;
 
@@ -89,7 +89,7 @@ async function maybeWarnBeforeVoiceJoin(channelId: string, proceed: () => unknow
     const pendingPromise = (async () => {
         const channel = ChannelStore.getChannel(channelId);
         if (!shouldWarnForVoiceChannel(channel)) {
-            return proceed();
+            return Promise.resolve(proceed());
         }
 
         const blockedUserIds = getBlockedVoiceUserIds(channelId).sort();
@@ -97,7 +97,7 @@ async function maybeWarnBeforeVoiceJoin(channelId: string, proceed: () => unknow
         if (generation !== activeGeneration || attemptId !== latestVoiceJoinAttempt) return;
         const latestBlockedUserIds = getBlockedVoiceUserIds(channelId).sort();
         if (!latestBlockedUserIds.length || !sameUserIds(blockedUserIds, latestBlockedUserIds)) {
-            return proceed();
+            return Promise.resolve(proceed());
         }
 
         openBlockedWarningModal({
@@ -270,7 +270,9 @@ export default definePlugin({
             }
 
             latestVoiceJoinAttempt++;
-            return maybeWarnBeforeVoiceJoin(channelId, () => originalSelectVoiceChannel?.(channelId));
+            return maybeWarnBeforeVoiceJoin(channelId, () => {
+                originalSelectVoiceChannel?.(channelId);
+            });
         }) as typeof VoiceChannelActions.selectVoiceChannel;
     },
     stop() {

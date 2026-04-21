@@ -20,3 +20,145 @@
 .vc-detect-block-icon {
     flex: 0 0 auto;
 }
+
+.vc-detect-block-root {
+    width: 480px;
+    max-width: 480px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--background-secondary);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.vc-detect-block-header {
+    padding: 0;
+    background: linear-gradient(180deg, rgba(62, 28, 102, 0.98) 0%, rgba(31, 24, 43, 1) 100%);
+    border-radius: 12px 12px 0 0;
+}
+
+.vc-detect-block-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+}
+
+.vc-detect-block-header-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.vc-detect-block-header-leading,
+.vc-detect-block-header-trailing-spacer {
+    width: 45px;
+    height: 35px;
+    flex: 0 0 auto;
+}
+
+.vc-detect-block-header-main {
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
+}
+
+.vc-detect-block-header-graphic {
+    width: 372px;
+    height: 198px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.vc-detect-block-header-graphic-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.vc-detect-block-header-image-frame {
+    width: 372px;
+    aspect-ratio: 16 / 9;
+}
+
+.vc-detect-block-header-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.vc-detect-block-header-trailing {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+.vc-detect-block-body {
+    padding: 0;
+}
+
+.vc-detect-block-body-inner {
+    display: block;
+    width: 414px;
+    margin: 0 auto;
+}
+
+.vc-detect-block-info-group {
+    display: block;
+    width: 414px;
+}
+
+.vc-detect-block-info-row {
+    width: 390px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+}
+
+.vc-detect-block-avatar-wrap {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+}
+
+.vc-detect-block-row-text {
+    line-height: 1.25;
+}
+
+.vc-detect-block-username {
+    white-space: nowrap;
+}
+
+.vc-detect-block-divider {
+    width: 384px;
+    height: 1px;
+    margin: 0 14px 0 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+}
+
+.vc-detect-block-icon-wrap {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    color: var(--interactive-icon-default);
+}
+
+.vc-detect-block-footer {
+    padding: 16px 32px 16px;
+}
+
+.vc-detect-block-footer-stack {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+}
+
+.vc-detect-block-button {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 40px;
+    border-radius: 8px;
+}
