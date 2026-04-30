@@ -9,7 +9,7 @@ import { CodeBlock } from "@components/CodeBlock";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { Flex } from "@components/Flex";
 import { Heading } from "@components/Heading";
-import { iconsModule } from "@equicordplugins/_core/concatenatedModules";
+import { DownArrow, FolderIcon, UpArrow } from "@components/Icons";
 import { classNameFactory } from "@utils/css";
 import { copyWithToast } from "@utils/discord";
 import { closeModal, ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, ModalSize, openModal } from "@utils/modal";
@@ -31,6 +31,7 @@ import {
 } from "./utils";
 
 export const cl = classNameFactory("vc-zip-preview-");
+const breadcrumbColorStyle = { color: "var(--text-muted)" };
 
 interface VisibleEntries {
     directories: string[];
@@ -149,8 +150,8 @@ export function ZipPreviewInline(props: ZipPreviewAttachmentProps) {
                 }}
             >
                 {isExpanded
-                    ? <iconsModule.ChevronSmallUpIcon className={cl("toggle-icon")} />
-                    : <iconsModule.ChevronSmallDownIcon className={cl("toggle-icon")} />}
+                    ? <UpArrow className={cl("toggle-icon")} />
+                    : <DownArrow className={cl("toggle-icon")} />}
             </button>
         </div>
     );
@@ -193,8 +194,8 @@ function ZipPreviewBreadcrumb({ path, onNavigate }: { path: string; onNavigate: 
     if (!path) {
         return (
             <div className={cl("breadcrumb")}>
-                <iconsModule.FolderIcon className={cl("breadcrumb-icon")} />
-                <span className={cl("breadcrumb-current")}>/</span>
+                <FolderIcon className={cl("breadcrumb-icon")} style={breadcrumbColorStyle} />
+                <span className={cl("breadcrumb-current")} style={breadcrumbColorStyle}>/</span>
             </div>
         );
     }
@@ -203,7 +204,7 @@ function ZipPreviewBreadcrumb({ path, onNavigate }: { path: string; onNavigate: 
 
     return (
         <div className={cl("breadcrumb")}>
-            <iconsModule.FolderIcon className={cl("breadcrumb-icon")} />
+            <FolderIcon className={cl("breadcrumb-icon")} style={breadcrumbColorStyle} />
             <button
                 className={cl("breadcrumb-segment")}
                 type="button"
@@ -222,7 +223,7 @@ function ZipPreviewBreadcrumb({ path, onNavigate }: { path: string; onNavigate: 
                 return (
                     <span key={segmentPath}>
                         {isLast
-                            ? <span className={cl("breadcrumb-current")}>{part}/</span>
+                            ? <span className={cl("breadcrumb-current")} style={breadcrumbColorStyle}>{part}/</span>
                             : (
                                 <button
                                     className={cl("breadcrumb-segment")}
