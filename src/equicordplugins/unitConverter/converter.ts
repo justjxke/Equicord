@@ -71,9 +71,8 @@ const regexes: regexes = {
         poundOunceWord: {
             regex: /(\d+(?:\.\d+)?) *(lbs?|pounds?) *(\d+(?:\.\d+)?) *(ozs?|ounces?)/ig,
             convert(...groups) {
-                let lbs = (parseInt(groups[1]) / 2.205);
-                lbs += (parseFloat(groups[2]) / 35.274);
-                return `${lbs.toFixed(2)}kg`;
+                const kg = ((parseFloat(groups[1]) * 16 + parseFloat(groups[3])) * 0.0283495).toFixed(2);
+                return `${kg}kg`;
             }
         },
         ounceWord: {
@@ -131,14 +130,14 @@ const regexes: regexes = {
             regex: /(\d+(?:\.\d+)?) ?(grams?|g)/gi,
             convert(...groups) {
                 const g = (parseFloat(groups[1]) / 28.35).toFixed(2);
-                return `${g}oz(s)`;
+                return `${g}oz`;
             },
         },
         kilograms: {
             regex: /(\d+(?:\.\d+)?) ?(kg|kilo(?:gram)?s?)/gi,
             convert(...groups) {
                 const kg = (parseFloat(groups[1]) * 2.205).toFixed(2);
-                return `${kg}lb(s)`;
+                return `${kg}lb`;
             },
         },
         kilometersPerHour: {
