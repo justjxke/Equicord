@@ -435,10 +435,19 @@ export default definePlugin({
                 // Decide if we should render the expanded folder icon if we are rendering the Better Folders sidebar
                 {
                     predicate: () => settings.store.showFolderIcon !== FolderIconDisplay.Always,
-                    match: /"--custom-folder-color".+?className:\i\.\i}\),(?=\i,)/,
+                    match: /"--custom-folder-color".+?className:\i(?=\i,)/,
                     replace: "$&!$self.shouldShowFolderIconAndBackground(!!arguments[0]?.isBetterFolders,arguments[0]?.betterFoldersExpandedIds)?null:"
                 }
             ]
+        },
+        // Force plain folder icon in BetterFolders sidebar
+        {
+            find: "#{intl::GUILD_FOLDER_TOOLTIP_A11Y_LABEL}",
+            predicate: () => settings.store.sidebar,
+            replacement: {
+                match: /(className:l\(\)\(\{)(\[is\.NG\]:\i,\[is\.yd\]:!\i)(\})/,
+                replace: "$1$2, \"vc-plainFolderIcon-plain\": !!arguments[0]?.isBetterFolders$3"
+            }
         },
         {
             find: ".FOLDER_ITEM_ANIMATION_DURATION),",

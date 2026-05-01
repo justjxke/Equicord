@@ -16,3 +16,9 @@
         "guildsList betterFoldersSidebar notice notice"
         "guildsList betterFoldersSidebar channelsList page";
 }
+
+.vc-betterFolders-sidebar .vc-plainFolderIcon-plain {
+    transition: none !important;
+    transform: translateZ(0);
+    background-color: color-mix(in oklab, var(--custom-folder-color, var(--badge-background-default)) 40%, transparent);
+}
