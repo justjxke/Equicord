@@ -316,20 +316,20 @@ export default definePlugin({
             replacement: [
                 {
                     match: /ChannelRenderer"\),/,
-                    replace: "$&vc_SidebarChat=$self.renderSidebar(),"
+                    replace: "$&Vencord.vc_SidebarChat=$self.renderSidebar(),"
                 },
                 {
                     match: /return(\(0,\i\.jsxs?\)\(\i,{}\))}/,
-                    replace: "return [$1,vc_SidebarChat]}"
+                    replace: "return [$1,Vencord.vc_SidebarChat]}"
                 },
                 {
                     match: /(?<=guild_products.{0,1600})(case \i\.\i.{0,50}return)(.+?\}\));(?=.+?params\.messageId)/g,
-                    replace: "$1[$2,vc_SidebarChat];",
+                    replace: "$1[$2,Vencord.vc_SidebarChat];",
                     predicate: () => settings.store.patchCommunity,
                 },
                 {
                     match: /(case \i\.\i\.GAME_SERVERS:.{0,50}\.CHANNEL.{0,25}return)(.*?);/,
-                    replace: "$1[$2,vc_SidebarChat];",
+                    replace: "$1[$2,Vencord.vc_SidebarChat];",
                     predicate: () => settings.store.patchCommunity,
                 },
             ],
