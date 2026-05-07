@@ -325,12 +325,12 @@ export default definePlugin({
                 {
                     match: /(?<=guild_products.{0,1600})(case \i\.\i.{0,50}return)(.+?\}\));(?=.+?params\.messageId)/g,
                     replace: "$1[$2,vc_SidebarChat];",
-                    predicate: () => !IS_REPORTER && settings.store.patchCommunity,
+                    predicate: () => settings.store.patchCommunity,
                 },
                 {
                     match: /(case \i\.\i\.GAME_SERVERS:.{0,50}\.CHANNEL.{0,25}return)(.*?);/,
                     replace: "$1[$2,vc_SidebarChat];",
-                    predicate: () => !IS_REPORTER && settings.store.patchCommunity,
+                    predicate: () => settings.store.patchCommunity,
                 },
             ],
         },
