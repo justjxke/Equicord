@@ -332,15 +332,15 @@ export default definePlugin({
             ],
         },
         {
-            find: "truncateTop(",
+            find: "loadComplete: resetting state for channelId=",
             group: true,
             replacement: [
                 {
-                    match: /truncateTop\(\i\)\{/,
+                    match: /truncateTop\(\i\)\{(?=.{0,100}?this\._array\.length-\i;return)/,
                     replace: "$&if($self.hasMultipleChatViews(this.channelId))return this;"
                 },
                 {
-                    match: /truncateBottom\(\i\)\{/,
+                    match: /truncateBottom\(\i\)\{(?=.{0,100}?return this\._array\.length<=\i\?this:this\.mutate\()/,
                     replace: "$&if($self.hasMultipleChatViews(this.channelId))return this;"
                 }
             ]
