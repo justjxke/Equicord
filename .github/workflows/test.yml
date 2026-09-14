@@ -23,9 +23,6 @@ jobs:
                   runtime: node@v24
                   require-lockfile: true
 
-            - name: Install dependencies
-              run: pnpm install --frozen-lockfile
-
             - name: Lint & Test if desktop version compiles
               run: pnpm test
 

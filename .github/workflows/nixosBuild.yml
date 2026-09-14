@@ -24,9 +24,6 @@ jobs:
                   runtime: node@v24
                   require-lockfile: true
 
-            - name: Install dependencies
-              run: pnpm install --frozen-lockfile
-
             - name: Build web
               run: pnpm buildWebStandalone
 

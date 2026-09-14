@@ -47,10 +47,6 @@ jobs:
                   runtime: node@v24
                   require-lockfile: true
 
-            - name: Install dependencies
-              if: github.ref_name != 'bun'
-              run: pnpm install --frozen-lockfile
-
             - name: Build web
               if: github.ref_name != 'bun'
               run: pnpm buildWebStandalone
