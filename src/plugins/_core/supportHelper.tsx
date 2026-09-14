@@ -436,7 +436,7 @@ export default definePlugin({
 
         const buttons = [] as JSX.Element[];
 
-        const equicordSupport = isEquicordSupport(props.message.author.id);
+        const equicordSupport = isEquicordGuild(props.message.channel_id) && isEquicordSupport(props.message.author.id);
 
         const shouldAddUpdateButton =
             !IS_UPDATER_DISABLED
@@ -498,8 +498,7 @@ export default definePlugin({
                 );
             }
         }
-
-        if (equicordSupport || (isSupportChannel(props.channel.id) || isKnownIssuesCategory(props.channel.parent_id))) {
+        if (equicordSupport || isSupportChannel(props?.channel?.id, true) || isKnownIssuesCategory(props?.channel?.parent_id, true)) {
             const match = CodeBlockRe.exec(props.message.content || props.message.embeds[0]?.rawDescription || "");
             if (match) {
                 buttons.push(
