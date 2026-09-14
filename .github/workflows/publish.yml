@@ -52,7 +52,7 @@ jobs:
 
             - name: Create Tag
               if: steps.check.outputs.release == 'true'
-              uses: butlerlogic/action-autotag@1.1.2
+              uses: thororen1234/action-autotag@v1.1.5
               env:
                   GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
               with:
