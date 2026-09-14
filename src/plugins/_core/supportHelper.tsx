@@ -432,6 +432,8 @@ export default definePlugin({
     },
 
     renderMessageAccessory(props) {
+        if (props.message.vencordEmbeddedBy) return null;
+
         const buttons = [] as JSX.Element[];
 
         const equicordSupport = isEquicordSupport(props.message.author.id);
