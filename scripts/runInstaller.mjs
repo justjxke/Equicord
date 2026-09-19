@@ -26,8 +26,6 @@ import { finished } from "stream/promises";
 import { fileURLToPath } from "url";
 
 const BASE_URL = "https://github.com/Equicord/Equilotl/releases/latest/download/";
-const INSTALLER_PATH_DARWIN = "Equilotl.app/Contents/MacOS/Equilotl";
-const INSTALLER_APP_DARWIN = "Equilotl.app";
 
 const BASE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FILE_DIR = join(BASE_DIR, "dist", "Installer");
@@ -40,9 +38,9 @@ function getFilename() {
         case "darwin":
             switch (process.arch) {
                 case "x64":
-                    return "Equilotl-darwin-x64.zip";
+                    return "EquilotlCli-darwin-x64";
                 case "arm64":
-                    return "Equilotl-darwin-arm64.zip";
+                    return "EquilotlCli-darwin-arm64";
                 default:
                     throw new Error("Unsupported macOS architecture: " + process.arch);
             }
@@ -59,14 +57,7 @@ async function ensureBinary() {
 
     mkdirSync(FILE_DIR, { recursive: true });
 
-    const downloadName = join(FILE_DIR, filename);
-    const outputFile = process.platform === "darwin"
-        ? join(FILE_DIR, INSTALLER_PATH_DARWIN)
-        : downloadName;
-    const outputApp = process.platform === "darwin"
-        ? join(FILE_DIR, INSTALLER_APP_DARWIN)
-        : null;
-
+    const outputFile = join(FILE_DIR, filename);
     const etag = existsSync(outputFile) && existsSync(ETAG_FILE)
         ? readFileSync(ETAG_FILE, "utf-8")
         : null;
@@ -87,32 +78,11 @@ async function ensureBinary() {
 
     writeFileSync(ETAG_FILE, res.headers.get("etag"));
 
-    if (process.platform === "darwin") {
-        console.log("Saving zip...");
-        const zip = new Uint8Array(await res.arrayBuffer());
-        writeFileSync(downloadName, zip);
-
-        console.log("Unzipping app bundle...");
-        execSync(`ditto -x -k '${downloadName}' '${FILE_DIR}'`);
-
-        console.log("Clearing quarantine from installer app (this is required to run it)");
-        console.log("xattr might error, that's okay");
-
-        const logAndRun = cmd => {
-            console.log("Running", cmd);
-            try {
-                execSync(cmd);
-            } catch { }
-        };
-        logAndRun(`sudo xattr -dr com.apple.quarantine '${outputApp}'`);
-    } else {
-        // WHY DOES NODE FETCH RETURN A WEB STREAM OH MY GOD
-        const body = Readable.fromWeb(res.body);
-        await finished(body.pipe(createWriteStream(outputFile, {
-            mode: 0o755,
-            autoClose: true
-        })));
-    }
+    const body = Readable.fromWeb(res.body);
+    await finished(body.pipe(createWriteStream(outputFile, {
+        mode: 0o755,
+        autoClose: true
+    })));
 
     console.log("Finished downloading!");
 
