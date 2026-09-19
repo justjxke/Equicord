@@ -38,11 +38,11 @@ function getFilename() {
         case "darwin":
             switch (process.arch) {
                 case "x64":
-                    return "EquilotlCli-darwin-x64";
+                    return "EquilotlCli-x64";
                 case "arm64":
-                    return "EquilotlCli-darwin-arm64";
+                    return "EquilotlCli-arm64";
                 default:
-                    throw new Error("Unsupported macOS architecture: " + process.arch);
+                    return "EquilotlCli-universal";
             }
         case "linux":
             return "EquilotlCli-linux";
