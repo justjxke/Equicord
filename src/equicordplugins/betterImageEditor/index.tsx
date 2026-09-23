@@ -576,10 +576,16 @@ export default definePlugin({
     patches: [
         {
             find: '"SET_IMAGE_ZOOM_RATIO"',
-            replacement: {
-                match: /\{default:\(\)=>(\i)\}/,
-                replace: "{default:()=>$self.wrapEditor($1)}"
-            }
+            replacement: [
+                {
+                    match: /\{default:\(\)=>(\i)\}/,
+                    replace: "{default:()=>$self.wrapEditor($1)}"
+                },
+                {
+                    match: /(?<=#{intl::AVATAR_UPLOAD_EDIT_MEDIA}\),)size:"md",actionBarInput:/,
+                    replace: 'size:"lg",actionBarInput:'
+                }
+            ]
         },
         {
             find: '"SET_IMAGE_ZOOM_RATIO"',
@@ -590,51 +596,34 @@ export default definePlugin({
                     replace: "{bieShelf,file:$1,imageUri:"
                 },
                 {
-                    match: /(\(0,\i\.jsx\)\(\i\.A,\{id:\i,children:)/,
-                    replace: "bieShelf,$1"
+                    match: /\(0,\i\.jsx\)\(\i\.\i,\{id:\i,children:.{0,50}#{intl::IMAGE_CROP_KEYBOARD_CANNOT_REPOSITION}/,
+                    replace: "bieShelf,$&"
                 },
                 {
-                    match: /\("div",\{role:"group","aria-label":/,
-                    replace: '("div",{className:"vc-bie-split",role:"group","aria-label":'
+                    match: /\("div",\{role:"group",(?="aria-label":)/,
+                    replace: '$&className:"vc-bie-split",'
                 }
             ]
         },
         {
             find: '"SET_IMAGE_ZOOM_RATIO"',
             replacement: {
-                match: /size:"md",actionBarInput:/,
-                replace: 'size:"lg",actionBarInput:'
+                match: /(?<=(?:(\i)\.current\.getBoundingClientRect\(\).{0,40})?=)(\(0,(\i)\.\i\)\([^)]+\))(?=,\i=(\(0,\3\.\i\))\((\i),[^,()]+,[^,()]+,([^()]+)\))/g,
+                replace: (_, image, size, _mod, crop, type, rest) =>
+                    `$self.fill(${size},(bieW,bieH)=>${crop}(${type},bieW,bieH,${rest})${image ? `,${image}.current` : ""})`
             }
-        },
-        {
-            find: '"SET_IMAGE_ZOOM_RATIO"',
-            group: true,
-            replacement: [
-                {
-                    match: /(?<==(\i)\.current\.getBoundingClientRect\(\),)\{width:(\i),height:(\i)\}=(\(0,\i\.\i\)\(\i,\i,\i,\i\))(?=,\i=(\(0,\i\.\i\))\((\i),\2,\3,(\i),(\i)\))/,
-                    replace: "{width:$2,height:$3}=$self.fill($4,(bieW,bieH)=>$5($6,bieW,bieH,$7,$8),$1.current)"
-                },
-                {
-                    match: /(\i)=(\(0,\i\.\i\)\(\i,\i,\i,\i\))(?=,\i=(\(0,\i\.\i\))\((\i),\1\.width,\1\.height,(\i),(\i)\))/,
-                    replace: "$1=$self.fill($2,(bieW,bieH)=>$3($4,bieW,bieH,$5,$6))"
-                },
-                {
-                    match: /\{width:(\i),height:(\i)\}=(\(0,\i\.\i\)\(\i,\i,\i,\i\))(?=,\i=(\(0,\i\.\i\))\((\i),\1,\2,(\i),(\i)\))/,
-                    replace: "{width:$1,height:$2}=$self.fill($3,(bieW,bieH)=>$4($5,bieW,bieH,$6,$7))"
-                }
-            ]
         },
         {
             find: 'displayName="RecentAvatarsStore"',
             replacement: {
-                match: /(uploadType:(\i),guild:\i,handleOpenImageEditingModal:(\i),[\s\S]{0,500}?)\i&&\(0,\i\.jsx\)\(\i,\{onComplete:(\i),returnRef:\i\}\)/,
+                match: /(uploadType:(\i),guild:\i,handleOpenImageEditingModal:(\i),.{0,250}null\]\}\),).{0,20}\{onComplete:(\i),returnRef:\i\}\)/,
                 replace: "$1$self.pickerRow($2,$3,$4,arguments[0])"
             }
         },
         {
             find: 'displayName="RecentAvatarsStore"',
             replacement: {
-                match: /size:"md"(,title:\i,actions:\[\],returnRef:\i,children:\(0,\i\.jsxs\)\("div",\{className:)(\i\.\i)/,
+                match: /size:"md"(,title:\i,.{0,50}className:)(\i\.\i)/,
                 replace: 'size:"lg"$1$self.pickerClass($2)'
             }
         }
